@@ -11,16 +11,15 @@ const debug = require('gulp-debug');
 const browserSync = require('browser-sync').create();
 const reload = browserSync.reload;
 const rev = require('gulp-rev');
-const revReplace = require('gulp-rev-replace');
 const gulpif = require('gulp-if');
 const useref = require('gulp-useref');
+const uglify = require('gulp-uglify');
+const revColletor = require('./storage/plugin/gulp-rev-coll.js');
 // const awspublish = require("gulp-awspublish");
 // const lazypipe = require('lazypipe');
-const uglify = require('gulp-uglify');
 // gulp.spritesmith
 // gulp-imagemin
 // gulp-sourcemaps
-const revColletor = require('./storage/plugin/gulp-rev-coll.js');
 
 const paths = {
     src: 'src/',
@@ -68,21 +67,8 @@ function replaceLink() {
                 'static/': './assets/'
             }
         }))
-        // .pipe(gulpif('!*.json',
-        //     revReplace({
-        //     manifest: src('storage/static/build/assets/rev-manifest.json'),
-        //     modifyUnreved: replaceJsIfMap,
-        //     modifyReved: replaceJsIfMap
-        // })))
         .pipe(dest(paths.dist))
         .pipe(browserSync.stream());
-}
-
-function replaceJsIfMap(filename) {
-    if (filename.indexOf('.map') > -1) {
-        return filename.replace('js/', '');
-    }
-    return filename;
 }
 
 function compileCss(cb) {
@@ -142,40 +128,6 @@ function merge() {
         .pipe(browserSync.stream());
 }
 
-function relink() {
-    return src([
-            'storage/static/build/assets/**/*.json',
-            'storage/static/build/**/*.html',
-            'storage/static/build/**/*.css'
-        ])
-        .pipe(cache('_replaceLink'))
-        .pipe(debug({title: 'replaceLink compilite:'}))
-        .pipe(remember('_replaceLink'))
-        // .pipe(revRewrite({
-        //     manifest: src('storage/static/build/assets/rev-manifest.json'),
-        //     modifyUnreved: testreplace,
-        //     modifyReved: testreplace,
-        //     dirReplacements: {
-        //         'static/': './assets/'
-        //     }
-        // }))
-        .pipe(revColletor({
-            replaceReved: true,
-            dirReplacements: {
-                'static/': './assets/'
-            }
-        }))
-        .pipe(dest(paths.dist));
-}
-function testreplace(filename, vinyl) {
-    // console.log(filename, '>>>>>>>>>>>>>>>>>> .' + vinyl.path.replace(vinyl.cwd, ''));
-    // .replace(vinyl.cwd, ''), 'opt.distFolder: ', opt.distFolder
-  if (filename.includes('.map')) {
-    return filename.replace('js/', '');
-  }
-  return filename;
-}
-
 const buildAll = series(parallel(
     compileSass,
     compileCss,
@@ -185,7 +137,7 @@ const buildAll = series(parallel(
     // compileFont,
     // compileMedia,
     // compileSdk
-), relink);
+), replaceLink);
 
 function runServer(cb) {
     browserSync.init({
@@ -216,5 +168,3 @@ exports.build = series(
 exports.dev = series(buildAll, runServer);
 
 exports.merge = merge;
-
-exports.relink = relink;
