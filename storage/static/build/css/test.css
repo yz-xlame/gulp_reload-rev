@@ -1,0 +1,15 @@
+.test {
+    display: flex;
+    max-width: 300px;
+    color: blue;
+    font-size: 22px;
+    font-weight: bold;
+    border: 1px solid #0f0;
+    background-color: #666;
+}
+
+.video-player {
+    width: 100%;
+    max-width: 600px;
+    background-color: #233;
+}
