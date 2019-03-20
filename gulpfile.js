@@ -22,13 +22,14 @@ const revColletor = require('./storage/plugin/gulp-rev-coll.js');
 // gulp-sourcemaps
 
 const paths = {
-    src: 'src/',
+    src: 'src/**.*',
     css: 'src/css/**/*.css',
     scss: 'src/css/**/*.scss',
     js: 'src/js/**/*.js',
     html: 'src/**/*.html',
     dist: 'storage/static/build/',
-    static: 'storage/static/'
+    static: 'storage/static/',
+    assets: 'storage/static/build/assets',
 }
 
 
@@ -44,11 +45,11 @@ function compileStatic() {
         .pipe(debug({title: 'compileStatic compilite:'}))
         .pipe(remember('_compileStatic'))
         .pipe(rev())
-        .pipe(dest('storage/static/build/assets'))
+        .pipe(dest(paths.assets))
         .pipe(rev.manifest({
             merge: true
         }))
-        .pipe(dest('storage/static/build/assets'))
+        .pipe(dest(paths.assets))
         .pipe(browserSync.stream());
 }
 
@@ -95,11 +96,21 @@ function compileJs(cb) {
         .pipe(cache('_compileJs'))
         .pipe(debug({title: 'compileJs compilite:'}))
         .pipe(remember('_compileJs'))
-        // .pipe(optimize({
-        //     baseUrl: 'storage/static/',
-        //     preserveLicenseComments: false,
-        //     optimize: 'none',
-        // }))
+        .pipe(optimize({
+            baseUrl: './src/js/',
+            preserveLicenseComments: false,
+            optimize: 'none',
+            paths: {
+                zepto: '../../storage/static/core/zepto.min',
+            },
+            shim: {
+                'zepto': {
+                    deps: [''],
+                    exports: 'Zepto'
+                },
+            },
+            fileExclusionRegExp: /^\./,
+        }))
         .pipe(dest('storage/static/build/js'))
         .pipe(browserSync.stream());
 }
