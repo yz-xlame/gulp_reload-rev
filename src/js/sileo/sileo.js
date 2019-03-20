@@ -1,6 +1,3 @@
-console.log('sileo!!');console.log('sileo!!');
-
-
-
-
-
+define(function() {
+    console.log('hi, i\'m sileo!');
+});

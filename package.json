@@ -15,13 +15,13 @@
     "gulp-rev": "^9.0.0",
     "lazypipe": "^1.0.2",
     "plugin-error": "^1.0.1",
-    "requirejs": "^2.3.6",
     "sass": "^1.17.2",
     "through2": "^3.0.1",
     "underscore": "^1.9.1",
     "vinyl": "^2.2.0",
     "webpack": "^4.29.6",
-    "webpack-cli": "^3.2.3"
+    "webpack-cli": "^3.2.3",
+    "zepto": "^1.2.0"
   },
   "devDependencies": {
     "browser-sync": "^2.26.3",
