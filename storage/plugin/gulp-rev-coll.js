@@ -9,6 +9,7 @@ var PLUGIN_NAME  = 'gulp-rev-collector';
 
 var defaults = {
     revSuffix: '-[0-9a-f]{8,10}-?',
+    onlineRev: true,
     extMap: {
         '.scss': '.css',
         '.less': '.css',
@@ -56,7 +57,6 @@ function _getManifestData(file, opts) {
     return data;
 }
 
-// Issue #30 extnames normalisation
 function _mapExtnames(filename, opts) {
     Object.keys(opts.extMap).forEach(function (ext) {
         var extPattern = new RegExp( escPathPattern(ext) + '$' );
@@ -112,7 +112,6 @@ function revCollector(opts) {
             );
         }
 
-        // Issue #50 extnames extended
         Object.keys(manifest).forEach(function (key) {
             var expMapedPattern = _mapExtnames(key, opts);
             if (key != expMapedPattern && !~Object.keys(manifest).indexOf(expMapedPattern)) {
@@ -120,6 +119,7 @@ function revCollector(opts) {
             }
         });
 
+        var iii = 0;
         for (var key in manifest) {
             var patterns = [ escPathPattern(key) ];
 
@@ -130,6 +130,7 @@ function revCollector(opts) {
                 } else {
                     patternExt = escPathPattern(patternExt);
                 }
+
                 patterns.push( escPathPattern( (path.dirname(key) === '.' ? '' : closeDirBySep(path.dirname(key)) ) )
                             + path.basename(key, path.extname(key))
                                 .split('.')
@@ -139,51 +140,65 @@ function revCollector(opts) {
                                 .join('\\.')
                             + patternExt
                         );
+
+                if(opts.onlineRev) {
+                    patterns.shift();
+                }
             }
 
-            if ( dirReplacements.length ) {
-                dirReplacements.forEach(function (dirRule) {
-                    patterns.forEach(function (pattern) {
-                        changes.push({
-                            regexp: new RegExp( dirRule.dirRX + pattern, 'g' ),
-                            patternLength: (dirRule.dirRX + pattern).length,
-                            replacement: _.isFunction(dirRule.dirRpl)
-                                            ? dirRule.dirRpl(manifest[key])
-                                            : closeDirBySep(dirRule.dirRpl) + manifest[key]
+            (function() {
+                var manifestValue = manifest[key];
+
+                if ( dirReplacements.length ) {
+                    dirReplacements.forEach(function (dirRule) {
+                        patterns.forEach(function(pattern) {
+                            changes.push({
+                                regexp: new RegExp( '(' + dirRule.dirRX + ')?' + pattern, 'g' ),
+                                patternLength: (dirRule.dirRX + pattern).length,
+                                replacement: function(r) {
+                                    if (_.isFunction(dirRule.dirRpl)) {
+                                        return dirRule.dirRpl(manifestValue);
+                                    } else if (new RegExp(dirRule.dirRX).test(r)) {
+                                        return closeDirBySep(dirRule.dirRpl) + manifestValue;
+                                    } else {
+                                        return manifestValue;
+                                    }
+                                }
+                            });
                         });
                     });
-                });
-            }
-            patterns.forEach(function (pattern) {
-                // without dirReplacements we must leave asset filenames with prefixes in its original state
-                var prefixDelim = '([\/\\\\\'"';
-                // if dir part in pattern exists, all exsotoic symbols should be correct processed using dirReplacements
-                if (/[\\\\\/]/.test(pattern)) {
-                    prefixDelim += '\(=';
                 } else {
-                    if (!/[\(\)]/.test(pattern)) {
-                        prefixDelim += '\(';
-                    }
-                    if (!~pattern.indexOf('=')) {
-                        prefixDelim += '=';
-                    }
+                    patterns.forEach(function (pattern) {
+                        // without dirReplacements we must leave asset filenames with prefixes in its original state
+                        var prefixDelim = '([\/\\\\\'"';
+                        // if dir part in pattern exists, all exsotoic symbols should be correct processed using dirReplacements
+                        if (/[\\\\\/]/.test(pattern)) {
+                            prefixDelim += '\(=';
+                        } else {
+                            if (!/[\(\)]/.test(pattern)) {
+                                prefixDelim += '\(';
+                            }
+                            if (!~pattern.indexOf('=')) {
+                                prefixDelim += '=';
+                            }
+                        }
+                        prefixDelim += '])';
+                        changes.push({
+                            regexp: new RegExp( prefixDelim + pattern, 'g' ),
+                            patternLength: pattern.length,
+                            replacement: '$1' + manifest[key]
+                        });
+                    });
                 }
-                prefixDelim += '])';
-                changes.push({
-                    regexp: new RegExp( prefixDelim + pattern, 'g' ),
-                    patternLength: pattern.length,
-                    replacement: '$1' + manifest[key]
-                });
-            });
+            })()
         }
 
-        // Replace longer patterns first
-        // e.g. match `script.js.map` before `script.js`
         changes.sort(
             function(a, b) {
                 return b.patternLength - a.patternLength;
             }
         );
+
         mutables.forEach(function (file){
             if (!file.isNull()) {
                 var src = file.contents.toString('utf8');

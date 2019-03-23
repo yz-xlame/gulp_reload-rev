@@ -65,7 +65,8 @@ function replaceLink() {
         .pipe(revColletor({
             replaceReved: true,
             dirReplacements: {
-                'static/': './assets/'
+                'static/': './assets/',
+                'test/': './dev/'
             }
         }))
         .pipe(dest(paths.dist))
@@ -153,7 +154,7 @@ const buildAll = series(parallel(
 function runServer(cb) {
     browserSync.init({
         server: {
-            baseDir: "storage/static/build/"
+            baseDir: "storage/static/build/html"
         }
     });
 
